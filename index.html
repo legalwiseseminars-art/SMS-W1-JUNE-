@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legalwise SMS Dashboard - 1-3 Jun 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f1117; --surface:#1a1d27; --surface2:#222635; --border:#2e3347;
+    --text:#e8eaf0; --muted:#7b82a0;
+    --teal:#0fb8a0; --blue:#3b82f6; --orange:#f97316; --red:#ef4444;
+    --green:#22c55e; --yellow:#eab308; --purple:#a855f7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); padding:24px; }
+
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+  .header-left h1 { font-size:22px; font-weight:700; letter-spacing:-0.4px; }
+  .header-left p { font-size:13px; color:var(--muted); margin-top:4px; font-family:'DM Mono',monospace; }
+  .badge { background:rgba(15,184,160,0.15); color:var(--teal); border:1px solid var(--teal); padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+
+  .section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; margin-top:22px; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; margin-bottom:6px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; position:relative; overflow:hidden; }
+  .kpi:hover { border-color:var(--teal); }
+  .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent,var(--teal)); }
+  .kpi-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; font-weight:600; margin-bottom:6px; }
+  .kpi-value { font-size:20px; font-weight:700; font-family:'DM Mono',monospace; line-height:1; }
+  .kpi-sub { font-size:10px; color:var(--muted); margin-top:5px; }
+  .kpi-sub.up { color:var(--green); } .kpi-sub.down { color:var(--red); } .kpi-sub.warn { color:var(--orange); }
+
+  .charts-main { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px; }
+  .charts-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px; }
+  .charts-row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px; }
+  .card-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:14px; }
+  .card canvas { max-height:200px; }
+
+  .legend { margin-top:12px; }
+  .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:12px; }
+  .legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .legend-name { color:var(--text); flex:1; }
+  .legend-val { color:var(--muted); font-family:'DM Mono',monospace; font-size:11px; }
+
+  .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:14px; }
+  .table-header-bar { padding:14px 18px 10px; border-bottom:1px solid var(--border); font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; }
+  table { width:100%; border-collapse:collapse; }
+  th { padding:9px 14px; font-size:10px; color:var(--muted); text-align:left; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  td { padding:9px 14px; font-size:12px; color:var(--text); border-bottom:1px solid var(--border); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--surface2); }
+  td.mono { font-family:'DM Mono',monospace; }
+
+  .pill { display:inline-block; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:700; }
+  .pill-high { background:rgba(239,68,68,0.15); color:var(--red); }
+  .pill-med  { background:rgba(249,115,22,0.15); color:var(--orange); }
+  .pill-low  { background:rgba(34,197,94,0.15); color:var(--green); }
+
+  .insights { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
+  .insight { background:var(--surface2); border-left:3px solid var(--accent,var(--teal)); border-radius:0 8px 8px 0; padding:12px 14px; font-size:12px; line-height:1.5; }
+  .insight strong { color:var(--teal); }
+
+  .unattr-card { background:var(--surface); border:1px solid rgba(249,115,22,0.4); border-radius:10px; overflow:hidden; margin-bottom:14px; }
+  .unattr-header { padding:14px 18px 10px; border-bottom:1px solid rgba(249,115,22,0.3); font-size:11px; font-weight:600; color:var(--orange); text-transform:uppercase; letter-spacing:0.8px; }
+
+  footer { text-align:center; font-size:11px; color:var(--muted); margin-top:20px; padding-top:14px; border-top:1px solid var(--border); font-family:'DM Mono',monospace; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Legalwise SMS Dashboard - 1-3 June 2026</h1>
+    <p>01 Jun 2026 - 03 Jun 2026 &nbsp;·&nbsp; Sinch MessageMedia + Registration Data</p>
+  </div>
+  <span class="badge">1-3 JUN 2026</span>
+</div>
+
+<!-- KPIs -->
+<div class="section-title">Overall Performance</div>
+<div class="kpi-grid">
+  <div class="kpi" style="--accent:#0fb8a0"><div class="kpi-label">Sent (Outbound)</div><div class="kpi-value">21,533</div><div class="kpi-sub">3 days</div></div>
+  <div class="kpi" style="--accent:#22c55e"><div class="kpi-label">Delivered</div><div class="kpi-value">20,636</div><div class="kpi-sub up">95.8% rate</div></div>
+  <div class="kpi" style="--accent:#ef4444"><div class="kpi-label">Undelivered</div><div class="kpi-value">897</div><div class="kpi-sub down">4.2% failure</div></div>
+  <div class="kpi" style="--accent:#3b82f6"><div class="kpi-label">Inbound Replies</div><div class="kpi-value">606</div><div class="kpi-sub">Received</div></div>
+  <div class="kpi" style="--accent:#eab308"><div class="kpi-label">Billing Units</div><div class="kpi-value">21,533</div><div class="kpi-sub">1:1 ratio</div></div>
+  <div class="kpi" style="--accent:#a855f7"><div class="kpi-label">Registrations</div><div class="kpi-value">22</div><div class="kpi-sub up">SMS attributed</div></div>
+  <div class="kpi" style="--accent:#22c55e"><div class="kpi-label">SMS Revenue</div><div class="kpi-value">$7,925</div><div class="kpi-sub up">Attributed</div></div>
+  <div class="kpi" style="--accent:#f97316"><div class="kpi-label">Rev / Message</div><div class="kpi-value">$0.37</div><div class="kpi-sub warn">Per outbound sent</div></div>
+</div>
+
+<!-- DELIVERY -->
+<div class="section-title">Delivery Performance</div>
+<div class="charts-main">
+  <div class="card">
+    <div class="card-title">Daily Outbound Volume - 1-3 Jun</div>
+    <canvas id="volumeChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Undelivered Breakdown</div>
+    <canvas id="donutChart" style="max-height:160px"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#f9b4b4"></div><span class="legend-name">Failed</span><span class="legend-val">566 (63%)</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#374151"></div><span class="legend-name">Rejected</span><span class="legend-val">331 (37%)</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-row3">
+  <div class="card">
+    <div class="card-title">Daily Failure Rate %</div>
+    <canvas id="failureChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Inbound Replies by Day</div>
+    <canvas id="inboundChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Campaign Recipients vs Delivered</div>
+    <canvas id="campDeliveryChart"></canvas>
+  </div>
+</div>
+
+<!-- CAMPAIGNS -->
+<div class="section-title">Campaign List - 1-3 Jun 2026</div>
+<div class="table-card">
+  <div class="table-header-bar">All campaigns sent 1-3 June 2026</div>
+  <table>
+    <thead><tr><th>Campaign</th><th>Date</th><th>Message</th><th>Recipients</th><th>Delivered</th><th>Delivery Rate</th><th>Regs</th><th>Revenue</th></tr></thead>
+    <tbody>
+      <tr style="background:rgba(15,184,160,0.05)">
+        <td><strong>Retail & Commercial Leasing NSW</strong></td>
+        <td class="mono">1 Jun</td>
+        <td>Drafting traps & dispute risk in retail & commercial leasing...</td>
+        <td class="mono">1,765</td>
+        <td class="mono">1,673</td>
+        <td><span class="pill pill-low">94.8%</span></td>
+        <td class="mono"><strong>7</strong></td>
+        <td class="mono"><strong>$3,190.00</strong></td>
+      </tr>
+      <tr>
+        <td>Psychosocial NON LAW</td>
+        <td class="mono">1 Jun</td>
+        <td>Psychosocial risk now a legal obligation. On WEDNESDAY...</td>
+        <td class="mono">11,100</td>
+        <td class="mono">10,219</td>
+        <td><span class="pill pill-low">92.1%</span></td>
+        <td class="mono">4</td>
+        <td class="mono">$640.00</td>
+      </tr>
+      <tr>
+        <td>Wellbeing By Design (Support Staff)</td>
+        <td class="mono">1 Jun</td>
+        <td>TOMORROW: Burnout, stress & anxiety are rising...</td>
+        <td class="mono">453</td>
+        <td class="mono">395</td>
+        <td><span class="pill pill-med">87.2%</span></td>
+        <td class="mono">0</td>
+        <td class="mono">$0.00</td>
+      </tr>
+      <tr>
+        <td>266AU Native Title SMS 02.06.2026</td>
+        <td class="mono">2 Jun</td>
+        <td>20 SPOTS LEFT - Native Title Conference June 18...</td>
+        <td class="mono">1,853</td>
+        <td class="mono">1,636</td>
+        <td><span class="pill pill-med">88.3%</span></td>
+        <td class="mono">1</td>
+        <td class="mono">$795.00</td>
+      </tr>
+      <tr style="background:rgba(15,184,160,0.05)">
+        <td><strong>266AU Succession All States (NO NSW)</strong></td>
+        <td class="mono">3 Jun</td>
+        <td>Drafting, file management & estate basics - get hands-on skills...</td>
+        <td class="mono">2,757</td>
+        <td class="mono">2,566</td>
+        <td><span class="pill pill-low">93.1%</span></td>
+        <td class="mono"><strong>3</strong></td>
+        <td class="mono"><strong>$1,230.00</strong></td>
+      </tr>
+      <tr>
+        <td>266AU Succession NSW SMS 03.06.2026</td>
+        <td class="mono">3 Jun</td>
+        <td>Family Provision Claims fail...</td>
+        <td class="mono">1,314</td>
+        <td class="mono">1,222</td>
+        <td><span class="pill pill-low">93.0%</span></td>
+        <td class="mono">0</td>
+        <td class="mono">$0.00</td>
+      </tr>
+      <tr>
+        <td>266AU Personal Injury NSW SMS 03.06</td>
+        <td class="mono">3 Jun</td>
+        <td>Psych injury, workers comp reforms & forensic assessment...</td>
+        <td class="mono">1,338</td>
+        <td class="mono">1,214</td>
+        <td><span class="pill pill-low">90.7%</span></td>
+        <td class="mono">2</td>
+        <td class="mono">$665.00</td>
+      </tr>
+      <tr>
+        <td>266AU Personal Injury VIC SMS 03.06</td>
+        <td class="mono">3 Jun</td>
+        <td>OHS regulations, liability since Kozarov...</td>
+        <td class="mono">866</td>
+        <td class="mono">784</td>
+        <td><span class="pill pill-low">90.5%</span></td>
+        <td class="mono">2</td>
+        <td class="mono">$580.00</td>
+      </tr>
+      <tr>
+        <td>New Message 04 Jun - Div 7A</td>
+        <td class="mono">4 Jun</td>
+        <td>Div 7A makes or breaks settlements...</td>
+        <td class="mono">3,271</td>
+        <td class="mono">2,976</td>
+        <td><span class="pill pill-low">91.0%</span></td>
+        <td class="mono">0</td>
+        <td class="mono">$0.00</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- REVENUE CHARTS -->
+<div class="section-title">Revenue and Registrations by Campaign</div>
+<div class="charts-row2">
+  <div class="card">
+    <div class="card-title">Revenue by Campaign (SMS Attributed)</div>
+    <canvas id="revenueChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Registrations by Campaign</div>
+    <canvas id="regsChart"></canvas>
+  </div>
+</div>
+
+<!-- REGISTRATION TABLE -->
+<div class="table-card">
+  <div class="table-header-bar">22 SMS Registrations · $7,925.00 total revenue · 1-3 Jun 2026</div>
+  <table>
+    <thead><tr><th>Date</th><th>Contact</th><th>Seminar</th><th>Revenue</th><th>Campaign</th><th>Match</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1 Jun</td><td>Jess Smith</td><td>Key Developments in Patentability</td><td class="mono">$160.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">1 Jun</td><td>Ross Selvaggio</td><td>Conveyancing Fundamentals</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">1 Jun</td><td>Tracey Fletcher</td><td>Conveyancing Fundamentals</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">1 Jun</td><td>Akos Osei</td><td>Psychiatric and Psychological Injury</td><td class="mono">$420.00</td><td>PI VIC (Psych Injury)</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">1 Jun</td><td>Taryn Tyas</td><td>Managing WHS in Your School</td><td class="mono">$160.00</td><td>PI VIC (Psych Injury)</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Jasmine Sliger</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>Psychosocial NON LAW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Chloe Boustani</td><td>Retail and Commercial Leasing</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Andrea Gorman</td><td>Using AI Effectively in Legal</td><td class="mono">$160.00</td><td>Unattributed</td><td><span class="pill pill-med">No Msg</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Andrea Gorman</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>Unattributed</td><td><span class="pill pill-med">No Msg</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Shenae Attwell</td><td>Conveyancing Fundamentals</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Natasha Samodol</td><td>Retail and Commercial Leasing</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Anthony Short</td><td>Retail and Commercial Leasing</td><td class="mono">$505.00</td><td>Retail & Commercial Leasing NSW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Jessica Robinson</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>Psychosocial NON LAW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">2 Jun</td><td>Natalie Knight</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>Psychosocial NON LAW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Susan Bubner</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>Psychosocial NON LAW</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Rebecca Gibson</td><td>Managing Psychosocial Risk</td><td class="mono">$160.00</td><td>PI NSW (Workers Comp)</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Pasha Mehr</td><td>AML Compliance</td><td class="mono">$305.00</td><td>266AU Succession All States</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Karina Ponne</td><td>Conveyancing Fundamentals</td><td class="mono">$505.00</td><td>PI NSW (Workers Comp)</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Karina Ponne</td><td>Retail and Commercial Leasing</td><td class="mono">$505.00</td><td>Unattributed</td><td><span class="pill pill-med">No Msg</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Freya Penney</td><td>Family Law and Div 7A</td><td class="mono">$420.00</td><td>266AU Succession All States</td><td><span class="pill pill-high">Mismatch</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Elizabeth Mitchell</td><td>Family Lawyers Dealing With Wills</td><td class="mono">$505.00</td><td>266AU Succession All States</td><td><span class="pill pill-low">Matched</span></td></tr>
+      <tr><td class="mono">3 Jun</td><td>Amanda Macmaster</td><td>16th Annual Native Title Conference</td><td class="mono">$795.00</td><td>266AU Native Title</td><td><span class="pill pill-low">Matched</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- UNATTRIBUTED -->
+<div class="section-title">Unattributed (No message recorded)</div>
+<div class="unattr-card">
+  <div class="unattr-header">3 registrations · $825.00 · Cannot be linked to a specific campaign</div>
+  <table>
+    <thead><tr><th>Contact</th><th>Seminar</th><th>Revenue</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Andrea Gorman</td><td>Using AI Effectively and Responsibly in Legal Contexts</td><td class="mono">$160.00</td><td><span class="pill pill-med">No SMS message recorded in HubSpot</span></td></tr>
+      <tr><td>Andrea Gorman</td><td>Managing Psychosocial Risk in the Workplace</td><td class="mono">$160.00</td><td><span class="pill pill-med">No SMS message recorded in HubSpot</span></td></tr>
+      <tr><td>Karina Ponne</td><td>Retail and Commercial Leasing</td><td class="mono">$505.00</td><td><span class="pill pill-med">No SMS message recorded in HubSpot</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- INSIGHTS -->
+<div class="section-title">Key Insights</div>
+<div class="insights">
+  <div class="insight" style="--accent:#22c55e"><strong>Delivery rate improved significantly.</strong> This period averaged 4.2% failure vs 10.5% in May. Cleaned lists are making a clear difference.</div>
+  <div class="insight" style="--accent:#3b82f6"><strong>Retail & Commercial Leasing NSW</strong> was the top revenue campaign at $3,190 from 7 registrations despite mismatches. Conveyancing and leasing audiences responded well.</div>
+  <div class="insight" style="--accent:#f97316"><strong>Message mismatches still happening.</strong> Several contacts received the wrong SMS but still converted. If the right message went to the right audience the conversion would likely be higher.</div>
+  <div class="insight" style="--accent:#a855f7"><strong>Psychosocial NON LAW sent to 11,100 people</strong> and drove 4 registrations at $640 total. Low revenue per recipient at $0.06, but the volume is large.</div>
+  <div class="insight" style="--accent:#0fb8a0"><strong>Succession All States</strong> drove $1,230 from 3 registrations despite being a wills/estate focused send. Good topic match for estate lawyers.</div>
+  <div class="insight" style="--accent:#ef4444"><strong>No Expired failures this period.</strong> Only Failed (63%) and Rejected (37%), no expired. This suggests the timing of sends was better and phones were reachable.</div>
+</div>
+
+<footer>Legalwise Seminars &nbsp;·&nbsp; SMS Dashboard &nbsp;·&nbsp; 1-3 June 2026 &nbsp;·&nbsp; Sinch MessageMedia</footer>
+
+<script>
+const gc='rgba(255,255,255,0.05)', lc='#7b82a0';
+Chart.defaults.color=lc; Chart.defaults.font.family='DM Sans';
+
+// Daily volume
+new Chart(document.getElementById('volumeChart'),{
+  type:'bar',
+  data:{
+    labels:['Mon 1 Jun','Tue 2 Jun','Wed 3 Jun'],
+    datasets:[
+      {label:'Delivered',data:[12306,1636+1222+1214,2566+1222+1214+784],backgroundColor:'#22c55e',borderRadius:3,stack:'a'},
+      {label:'Undelivered',data:[Math.round(13318*0.042),Math.round(2000*0.049),Math.round(6319*0.037)],backgroundColor:'#ef4444',borderRadius:3,stack:'a'}
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{labels:{font:{size:9},boxWidth:10}}},scales:{x:{grid:{color:gc},ticks:{font:{size:9}},stacked:true},y:{grid:{color:gc},ticks:{font:{size:9}},stacked:true}}}
+});
+
+// Donut
+new Chart(document.getElementById('donutChart'),{
+  type:'doughnut',
+  data:{labels:['Failed','Rejected'],datasets:[{data:[566,331],backgroundColor:['#f9b4b4','#374151'],borderWidth:0}]},
+  options:{responsive:true,cutout:'70%',plugins:{legend:{display:false}}}
+});
+
+// Daily failure rate
+new Chart(document.getElementById('failureChart'),{
+  type:'bar',
+  data:{
+    labels:['1 Jun','2 Jun','3 Jun'],
+    datasets:[{data:[4.3,4.9,3.7],backgroundColor:['#f97316','#ef4444','#22c55e'],borderRadius:4}]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{font:{size:10}}},y:{grid:{color:gc},ticks:{callback:v=>v+'%',font:{size:10}},max:6}}}
+});
+
+// Inbound by day
+new Chart(document.getElementById('inboundChart'),{
+  type:'bar',
+  data:{
+    labels:['1 Jun','2 Jun','3 Jun'],
+    datasets:[{label:'Inbound Replies',data:[420,80,106],backgroundColor:'#3b82f6',borderRadius:4}]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{font:{size:10}}},y:{grid:{color:gc},ticks:{font:{size:10}}}}}
+});
+
+// Campaign delivery
+new Chart(document.getElementById('campDeliveryChart'),{
+  type:'bar',
+  data:{
+    labels:['Psychosocial\nNON LAW','Retail &\nLeasing NSW','Native\nTitle','Succession\nAll States','PI\nNSW','Succession\nNSW','PI\nVIC','Wellbeing\nStaff'],
+    datasets:[
+      {label:'Recipients',data:[11100,1765,1853,2757,1338,1314,866,453],backgroundColor:'rgba(59,130,246,0.4)',borderRadius:3},
+      {label:'Delivered',data:[10219,1673,1636,2566,1214,1222,784,395],backgroundColor:'#3b82f6',borderRadius:3}
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{labels:{font:{size:9},boxWidth:10}}},scales:{x:{grid:{color:gc},ticks:{font:{size:8}}},y:{grid:{color:gc},ticks:{font:{size:9}}}}}
+});
+
+// Revenue by campaign
+new Chart(document.getElementById('revenueChart'),{
+  type:'bar',
+  data:{
+    labels:['Retail &\nLeasing NSW','Succession\nAll States','Native\nTitle','PI NSW\n(Workers Comp)','Psychosocial\nNON LAW','PI VIC\n(Psych Injury)'],
+    datasets:[{label:'Revenue ($)',data:[3190,1230,795,665,640,580],backgroundColor:['#0fb8a0','#a855f7','#22c55e','#3b82f6','#f97316','#ef4444'],borderRadius:4}]
+  },
+  options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString()}}},scales:{x:{grid:{color:gc},ticks:{font:{size:9}}},y:{grid:{color:gc},ticks:{callback:v=>'$'+v.toLocaleString(),font:{size:9}}}}}
+});
+
+// Regs by campaign
+new Chart(document.getElementById('regsChart'),{
+  type:'bar',
+  data:{
+    labels:['Retail &\nLeasing NSW','Psychosocial\nNON LAW','Succession\nAll States','Native\nTitle','PI NSW\n(Workers Comp)','PI VIC\n(Psych Injury)'],
+    datasets:[{label:'Registrations',data:[7,4,3,1,2,2],backgroundColor:['#0fb8a0','#f97316','#a855f7','#22c55e','#3b82f6','#ef4444'],borderRadius:4}]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{font:{size:9}}},y:{grid:{color:gc},ticks:{stepSize:1,font:{size:9}}}}}
+});
+</script>
+</body>
+</html>
